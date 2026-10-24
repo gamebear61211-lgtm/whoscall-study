@@ -1,0 +1,212 @@
+<title>AI 接電話助理計畫</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* 版面：單欄閱讀，像一份一步步講給你聽的說明書；重點用「來電螢幕」的琥珀色標出 */
+:root{
+  --bg:#f5f6f4; --surface:#ffffff; --ink:#18221f; --muted:#5b6762;
+  --line:#dfe3e0; --accent:#b8650f; --accent-soft:#fbeed9; --teal:#1f5e57; --teal-soft:#e2efec;
+  --good:#2f7a45; --warn:#b5531f;
+  --f-display:"Noto Sans TC",system-ui,sans-serif;
+  --f-body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#19211e; --ink:#e8eeeb; --muted:#9aa8a2;
+  --line:#2a3531; --accent:#f0a24a; --accent-soft:#3a2a15; --teal:#7cc3b8; --teal-soft:#1c2f2b;
+  --good:#7bc98f; --warn:#f08a5a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#19211e; --ink:#e8eeeb; --muted:#9aa8a2;
+  --line:#2a3531; --accent:#f0a24a; --accent-soft:#3a2a15; --teal:#7cc3b8; --teal-soft:#1c2f2b;
+  --good:#7bc98f; --warn:#f08a5a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.75}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px;display:flex;flex-direction:column;gap:48px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.3;margin:0}
+h1{font-size:clamp(28px,6vw,40px);font-weight:900}
+h2{font-size:22px;font-weight:700;display:flex;gap:10px;align-items:baseline}
+h2 .n{font-family:var(--f-mono);font-size:14px;color:var(--accent);font-weight:700}
+h3{font-size:17px;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.eyebrow{font-size:13px;letter-spacing:.08em;color:var(--teal);font-weight:700}
+section{display:flex;flex-direction:column;gap:16px}
+code{font-family:var(--f-mono);font-weight:700;background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:4px;font-size:.92em;white-space:nowrap}
+.verdict{background:var(--teal-soft);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.verdict strong{color:var(--teal)}
+.flow{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start}
+.step .dot{width:44px;height:44px;border-radius:50%;background:var(--surface);border:2px solid var(--line);display:grid;place-items:center;font-size:20px;position:relative}
+.step.ai .dot{border-color:var(--accent);background:var(--accent-soft)}
+.step .txt{padding-block:8px 18px;min-width:0}
+.step .txt b{display:block}
+.step .txt span{color:var(--muted);font-size:15px}
+.flow .step:not(:last-child) .dot::after{content:"";position:absolute;top:44px;left:50%;width:2px;height:30px;background:var(--line);transform:translateX(-50%)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+th,td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font-size:13px;color:var(--muted);font-weight:500;letter-spacing:.04em}
+td.us{background:var(--accent-soft)}
+.y{color:var(--good);font-weight:700}.x{color:var(--muted)}
+.features{display:grid;gap:14px}
+.feat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.feat .rank{font-family:var(--f-mono);font-size:13px;color:var(--accent);font-weight:700}
+.bubble{background:var(--bg);border-radius:10px;padding:12px 14px;font-size:15px;border:1px dashed var(--line)}
+.bubble .who{font-size:12px;color:var(--muted);display:block}
+.later{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:14px}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.num{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.num .big{font-family:var(--f-mono);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.num .lab{font-size:14px;color:var(--muted)}
+ul.plain{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.todo{display:flex;flex-direction:column;gap:10px}
+.todo label{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer}
+.todo input{margin-top:6px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.todo input:checked + span{color:var(--muted);text-decoration:line-through}
+.warnbox{border-left:4px solid var(--warn);padding:12px 16px;background:var(--surface);border-radius:0 10px 10px 0}
+dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;font-size:15px}
+dt{font-weight:700}dd{margin:0;color:var(--muted)}
+@media (max-width:480px){dl{grid-template-columns:1fr;gap:2px}dd{margin-bottom:10px}}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:12px">
+  <div class="eyebrow">研究報告・2026-10-23</div>
+  <h1>做一個比 Whoscall 更聰明的 AI 接電話助理</h1>
+  <p class="muted">Whoscall、iPhone 內建功能、國外產品都查過一輪了，整理成這一頁。看完你會知道三件事：做不做得到、要做哪些功能、下一步要做什麼。</p>
+</header>
+
+<div class="verdict">
+  <strong>一句話結論</strong>
+  <p>做得到，而且用你現在的手機門號就行，不用換號碼。做法是沒接到的電話自動轉給 AI 接，AI 問完再把重點傳給你。唯一要先搞清楚的是：<b>電信商轉接要不要另外收錢</b>。</p>
+</div>
+
+<section>
+  <h2><span class="n">1</span>電話怎麼交給 AI 接？</h2>
+  <p>Apple 和 Google 都不讓手機 App 聽到通話聲音，所以要借用電信商本來就有的「轉接」功能。</p>
+  <div class="flow">
+    <div class="step"><div class="dot">📱</div><div class="txt"><b>客人打你的手機</b><span>就是你現在用的號碼，不用換</span></div></div>
+    <div class="step"><div class="dot">⏱</div><div class="txt"><b>你在開車，響幾聲沒接</b><span>或是忙線中、山區沒訊號</span></div></div>
+    <div class="step ai"><div class="dot">↪</div><div class="txt"><b>電信商自動轉到我們的號碼</b><span>你只要在手機撥一次設定碼（例如 <code>**61</code>），之後就會自動轉</span></div></div>
+    <div class="step ai"><div class="dot">🤖</div><div class="txt"><b>AI 接起來問清楚</b><span>「您好，我是司機的 AI 助理，他正在開車。請問是要預約送機嗎？」</span></div></div>
+    <div class="step"><div class="dot">🔔</div><div class="txt"><b>你下車後看到一則摘要</b><span>按一下就能回電或回訊息</span></div></div>
+  </div>
+  <div class="warnbox"><b>可以用的三個設定碼：</b><code>**61</code> 沒接聽時轉、<code>**67</code> 忙線時轉、<code>**62</code> 沒訊號時轉。<br><b>絕對不要用</b> <code>**21</code>（全部都轉）。詐騙集團常騙人設定這個，用了反而會讓客人起疑。</div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>對手是誰？我們贏在哪？</h2>
+  <p>研究發現，<b>真正的對手其實是 iPhone</b>。iOS 26 已經免費內建 AI 先幫你接陌生電話，而且聽得懂台灣國語。但它只會問一句，你得當下盯著螢幕看。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>能做什麼</th><th>Whoscall</th><th>iPhone 內建</th><th>我們</th></tr></thead>
+    <tbody>
+      <tr><td>告訴你是誰打來</td><td class="y">✓ 很強</td><td class="x">部分</td><td class="us">規則判斷＋白名單</td></tr>
+      <tr><td>幫你接電話</td><td class="x">✗</td><td class="y">✓ 只問一句</td><td class="us y">✓ 會追問細節</td></tr>
+      <tr><td>你不在手機前也能處理</td><td class="x">✗</td><td class="x">✗ 要當下看</td><td class="us y">✓ 下車再看</td></tr>
+      <tr><td>自動記成訂單</td><td class="x">✗</td><td class="x">✗</td><td class="us y">✓</td></tr>
+      <tr><td>從對話內容抓詐騙</td><td class="x">✗ 只看號碼</td><td class="x">✗</td><td class="us y">✓</td></tr>
+      <tr><td>不上傳通訊錄、沒廣告</td><td class="x">✗ 有爭議</td><td class="y">✓</td><td class="us y">✓</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted small">國外的同類產品（Truecaller AI、Hiya AI Phone、Google Call Screen）目前都沒開放台灣，台灣三家電信也沒有給一般人用的 AI 代接。這個位置現在還沒人做。</p>
+</section>
+
+<section>
+  <h2><span class="n">3</span>第一版先做這 3 個功能</h2>
+  <div class="features">
+    <div class="feat">
+      <div class="rank">第 1 名・核心</div>
+      <h3>AI 代接，而且會追問</h3>
+      <p>不只問什麼事，還會照接送業的需要追問日期、航班、人數、行李。</p>
+      <div class="bubble"><span class="who">AI</span>請問是送機還是接機？大概幾點的航班？幾位、幾件行李呢？</div>
+    </div>
+    <div class="feat">
+      <div class="rank">第 2 名</div>
+      <h3>講完立刻推播摘要</h3>
+      <p>掛電話 5 秒內，手機跳出整理好的重點，一鍵回電或回訊息。這是跟 iPhone 拉開差距的關鍵：iPhone 要你當下看，我們讓你忙完再看。</p>
+      <div class="bubble"><span class="who">推播</span>王先生｜11/2 06:00 桃機送機｜4 人 3 箱｜請回電</div>
+    </div>
+    <div class="feat">
+      <div class="rank">第 3 名</div>
+      <h3>自動變成一筆訂單</h3>
+      <p>從對話抓出時間、地點、航班、人數、車型，變成一筆待確認訂單，可以存到 Google 日曆或傳到 LINE。你自己就是第一個用戶，邊跑車邊測。</p>
+    </div>
+  </div>
+  <p><b>從第一天就要做到：</b>通訊錄不上傳、錄音可以設定自動刪除、不放廣告、AI 一開口就說「我是 AI 助理」。</p>
+  <h3>之後再加的功能</h3>
+  <div class="later">
+    <span class="chip">詐騙話術即時警示</span>
+    <span class="chip">開車／睡覺情境模式</span>
+    <span class="chip">AI 照價目表報價</span>
+    <span class="chip">熟客記憶</span>
+    <span class="chip">台語、英文接聽</span>
+    <span class="chip">家人防詐守護</span>
+  </div>
+  <p class="muted small">之後也能賣給其他靠電話接單的人，例如水電師傅、美髮師、小吃店、家教。</p>
+</section>
+
+<section>
+  <h2><span class="n">4</span>要花多少錢？</h2>
+  <div class="nums">
+    <div class="num"><div class="big">NT$190–320</div><div class="lab">每月 AI 費用（用便宜的語音模型，照司機的用量估算）</div></div>
+    <div class="num"><div class="big">NT$2,000+</div><div class="lab">如果用最貴的 AI 模型，個人方案會撐不住</div></div>
+    <div class="num"><div class="big">還不知道</div><div class="lab">電信轉接費，要打客服問</div></div>
+  </div>
+  <p class="muted small">上面的 AI 費用是第三方估算，還沒實際測過。另外還需要一支雲端號碼的月租（例如 Twilio 或台灣的 070 業者），價格要開帳號才查得到。</p>
+</section>
+
+<section>
+  <h2><span class="n">5</span>要小心的地方</h2>
+  <ul class="plain">
+    <li><b>台灣沒有可以整批下載的詐騙號碼清單。</b>165 只能一筆一筆查。所以一開始先用規則判斷（例如 +886 開頭的境外假號碼），再靠司機圈互相回報，慢慢累積。</li>
+    <li><b>錄音合法嗎？</b>台灣只要通話的一方同意就可以錄，錄自己的電話原則上沒問題。AI 一開口就表明身分最保險。</li>
+    <li><b>如果我們自己提供轉接號碼和語音服務，</b>可能會碰到電信法規，要問律師。</li>
+    <li><b>Whoscall 還是很強。</b>它有十幾年的號碼資料，又跟 165 官方合作。我們不跟它比誰的號碼資料多，要比的是誰真的幫你把電話處理完。</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">6</span>下一步：你可以先打這通電話</h2>
+  <p>打給你那家電信的客服，問下面三題，答案決定這個產品做不做得成。打勾的紀錄只會存在你這支手機上。</p>
+  <div class="todo" id="todo">
+    <label><input type="checkbox" id="q1"><span>我的門號可以設定 <code>**61</code>、<code>**67</code>、<code>**62</code> 嗎？可以設定響幾聲才轉嗎？</span></label>
+    <label><input type="checkbox" id="q2"><span>轉接到別家的手機號碼，或 070 網路電話，每分鐘怎麼算錢？</span></label>
+    <label><input type="checkbox" id="q3"><span>我的吃到飽方案，包不包含轉出去的那段通話費？</span></label>
+  </div>
+  <p>問完跟我說答案，我就用你的門號做一個最小的試用版：你打一通電話給自己，看看 AI 怎麼接、摘要怎麼傳過來。</p>
+</section>
+
+<section>
+  <h2><span class="n">7</span>名詞小辭典</h2>
+  <dl>
+    <dt>條件轉接</dt><dd>電信商的功能：沒接、忙線或沒訊號時，自動把電話轉到另一個號碼。</dd>
+    <dt>雲端號碼</dt><dd>不用插 SIM 卡的電話號碼，放在網路上給 AI 接聽用。</dd>
+    <dt>第一版（MVP）</dt><dd>只做最重要的功能，先自己用，驗證有沒有效。</dd>
+    <dt>白名單</dt><dd>確定安全的號碼清單，例如你的熟客、銀行官方號碼。</dd>
+    <dt>iOS 26 篩選來電</dt><dd>iPhone 內建功能，陌生來電會先由系統問對方有什麼事。</dd>
+  </dl>
+</section>
+
+<footer>完整研究報告在電腦的 ~/whoscall-study/ 資料夾：whoscall-research.md（Whoscall 本身）、foundations.md（資料、技術、法規）、ai-assistant.md（AI 助理，附所有來源連結）。</footer>
+</div>
+
+<script>
+(function(){
+  var KEY='callAssistantTodo';
+  var saved={};
+  try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+  document.querySelectorAll('#todo input').forEach(function(cb){
+    if(saved[cb.id])cb.checked=true;
+    cb.addEventListener('change',function(){
+      saved[cb.id]=cb.checked;
+      try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(e){}
+    });
+  });
+})();
+</script>
